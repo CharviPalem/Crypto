@@ -1,0 +1,56 @@
+{
+  "analysis_summary": {
+    "total_data_points": 30,
+    "unique_models": 3,
+    "model_types": [
+      "Logistic Regression",
+      "SVM",
+      "Random Forest"
+    ],
+    "epsilon_range": {
+      "min": 0.01,
+      "max": 100.0,
+      "mean": 16.866
+    },
+    "accuracy_range": {
+      "min": 0.5841,
+      "max": 0.8862,
+      "mean": 0.7833233333333334
+    }
+  },
+  "privacy_levels": {
+    "Very High Privacy": 9,
+    "High Privacy": 6,
+    "Medium Privacy": 6,
+    "Very Low Privacy": 6,
+    "Low Privacy": 3
+  },
+  "model_performance": {
+    "Logistic Regression": {
+      "data_points": 10,
+      "avg_accuracy": 0.78514,
+      "accuracy_std": 0.09519008118262931,
+      "epsilon_sensitivity": 0.893017295479209
+    },
+    "SVM": {
+      "data_points": 10,
+      "avg_accuracy": 0.75302,
+      "accuracy_std": 0.0802744154620747,
+      "epsilon_sensitivity": 0.9127464694789437
+    },
+    "Random Forest": {
+      "data_points": 10,
+      "avg_accuracy": 0.81181,
+      "accuracy_std": 0.0854643843949045,
+      "epsilon_sensitivity": 0.8883482782100239
+    }
+  },
+  "trade_off_insights": [
+    "Strong positive correlation between epsilon and accuracy - clear privacy-utility trade-off"
+  ],
+  "visualization_path": "data/results/privacy_utility_plot.png",
+  "loaded_files": [
+    "data/results/fhe_logistic_regression_results.json",
+    "data/results/fhe_svm_results.json"
+  ]
+}

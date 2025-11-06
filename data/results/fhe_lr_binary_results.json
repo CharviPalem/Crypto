@@ -1,0 +1,77 @@
+{
+  "experiment_info": {
+    "timestamp": "2025-11-06 14:40:19",
+    "model_type": "Binary Logistic Regression",
+    "classification_type": "Cardiovascular vs Non-Cardiovascular",
+    "max_features": 500,
+    "n_bits": 8,
+    "test_size": 0.2,
+    "concrete_ml_available": true
+  },
+  "dataset_info": {
+    "total_samples": 1000,
+    "train_size": 800,
+    "test_size": 200,
+    "n_features": 500,
+    "classes": [
+      "Cardiovascular",
+      "Non-Cardiovascular"
+    ],
+    "class_distribution": {
+      "Cardiovascular": 206,
+      "Non-Cardiovascular": 794
+    }
+  },
+  "timing": {
+    "training_time": 0.33414340019226074,
+    "clear_inference_time": 0.004957675933837891,
+    "fhe_compile_time": 0.17104816436767578,
+    "fhe_inference_time": 1.4934208393096924
+  },
+  "clear_results": {
+    "accuracy": 0.795,
+    "classification_report": {
+      "Cardiovascular": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 41.0
+      },
+      "Non-Cardiovascular": {
+        "precision": 0.795,
+        "recall": 1.0,
+        "f1-score": 0.8857938718662952,
+        "support": 159.0
+      },
+      "accuracy": 0.795,
+      "macro avg": {
+        "precision": 0.3975,
+        "recall": 0.5,
+        "f1-score": 0.4428969359331476,
+        "support": 200.0
+      },
+      "weighted avg": {
+        "precision": 0.6320250000000001,
+        "recall": 0.795,
+        "f1-score": 0.7042061281337046,
+        "support": 200.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        0,
+        41
+      ],
+      [
+        0,
+        159
+      ]
+    ]
+  },
+  "fhe_results": {
+    "compile_time": 0.17104816436767578,
+    "fhe_inference_time": 1.4934208393096924,
+    "fhe_accuracy": 1.0,
+    "samples_tested": 5
+  }
+}

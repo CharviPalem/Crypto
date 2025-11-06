@@ -1,0 +1,26 @@
+============================================================
+PRIVACY-PRESERVING SVM RESULTS
+============================================================
+
+Dataset Information:
+  Dataset: diabetes
+  Training samples: 353
+  Test samples: 89
+  Features: 10
+
+Model Information:
+  Kernel: linear
+  C parameter: 1.0
+  Support vectors: 193
+
+Performance Comparison:
+  Clear Accuracy: 0.7416
+
+Timing Comparison:
+  Training Time: 0.0294s
+  Clear Inference: 0.0010s
+
+Privacy Features:
+  Homomorphic Encryption: ✅ Enabled
+  Data Privacy: ✅ Test data encrypted
+============================================================

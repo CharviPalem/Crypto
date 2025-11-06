@@ -1,0 +1,70 @@
+{
+  "experiment_info": {
+    "timestamp": "2025-10-30 10:47:49",
+    "dataset": "diabetes",
+    "kernel": "linear",
+    "C": 1.0,
+    "test_size": 0.2,
+    "random_seed": 42,
+    "pyfhel_available": true
+  },
+  "dataset_info": {
+    "total_samples": 442,
+    "train_size": 353,
+    "test_size": 89,
+    "n_features": 10,
+    "feature_names": [
+      "age",
+      "sex",
+      "bmi",
+      "bp",
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s6"
+    ]
+  },
+  "training_info": {
+    "training_time": 0.029420852661132812,
+    "training_accuracy": 0.7563739376770539,
+    "n_support_vectors": 193,
+    "kernel": "linear",
+    "C": 1.0
+  },
+  "timing": {
+    "training_time": 0.029420852661132812,
+    "clear_inference_time": 0.0010020732879638672
+  },
+  "clear_results": {
+    "accuracy": 0.7415730337078652,
+    "classification_report": {
+      "Class 0": {
+        "precision": 0.75,
+        "recall": 0.7333333333333333,
+        "f1-score": 0.7415730337078652,
+        "support": 45.0
+      },
+      "Class 1": {
+        "precision": 0.7333333333333333,
+        "recall": 0.75,
+        "f1-score": 0.7415730337078652,
+        "support": 44.0
+      },
+      "accuracy": 0.7415730337078652,
+      "macro avg": {
+        "precision": 0.7416666666666667,
+        "recall": 0.7416666666666667,
+        "f1-score": 0.7415730337078652,
+        "support": 89.0
+      },
+      "weighted avg": {
+        "precision": 0.7417602996254682,
+        "recall": 0.7415730337078652,
+        "f1-score": 0.7415730337078652,
+        "support": 89.0
+      }
+    }
+  }
+}

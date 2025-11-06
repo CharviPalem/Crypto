@@ -1,0 +1,221 @@
+# Differential Privacy Configuration
+# This file defines the parameters for differential privacy mechanisms
+# used in the privacy-preserving NLP pipeline.
+
+# Differential Privacy Settings
+dp:
+  # Privacy budget values (epsilon) for experimentation
+  # Lower values provide stronger privacy but may reduce utility
+  # Range from very private (0.1) to less private (5.0)
+  epsilon_values: [0.1, 0.5, 1.0, 2.0, 5.0]
+  
+  # Failure probability (delta) for (ε,δ)-differential privacy
+  # Probability that the privacy guarantee fails
+  # Standard value for most applications
+  delta: 1e-5
+  
+  # Global sensitivity of the query/function
+  # Maximum change in output when one record is added/removed
+  # Set to 1.0 for most counting queries and normalized data
+  sensitivity: 1.0
+  
+  # Noise distribution mechanism
+  # 'laplace' for ε-DP, 'gaussian' for (ε,δ)-DP
+  noise_distribution: laplace
+
+# Advanced Differential Privacy Parameters
+dp_mechanisms:
+  # Laplace mechanism settings
+  laplace:
+    # Scale parameter (sensitivity/epsilon)
+    # Automatically calculated based on sensitivity and epsilon
+    auto_scale: true
+    
+    # Manual scale override (if auto_scale is false)
+    manual_scale: null
+    
+    # Clipping bounds for input values
+    clipping_bounds:
+      lower: -10.0
+      upper: 10.0
+  
+  # Gaussian mechanism settings
+  gaussian:
+    # Noise multiplier (sigma = noise_multiplier * sensitivity / epsilon)
+    noise_multiplier: 1.1
+    
+    # Clipping bounds for input values
+    clipping_bounds:
+      lower: -10.0
+      upper: 10.0
+    
+    # Enable adaptive clipping
+    adaptive_clipping: false
+
+# Privacy Budget Management
+budget_management:
+  # Total privacy budget allocation
+  total_epsilon: 10.0
+  
+  # Budget allocation strategy
+  allocation_strategy: 'uniform'  # 'uniform', 'adaptive', 'manual'
+  
+  # Budget tracking
+  track_budget: true
+  
+  # Budget composition method
+  composition_method: 'basic'  # 'basic', 'advanced', 'rdp'
+  
+  # Privacy accountant settings
+  accountant:
+    # Enable privacy accounting
+    enabled: true
+    
+    # Accounting method ('rdp', 'gdp', 'pld')
+    method: 'rdp'
+    
+    # Target delta for composition
+    target_delta: 1e-5
+
+# Data Processing Settings
+data_processing:
+  # Preprocessing for DP
+  preprocessing:
+    # Normalize data before applying DP
+    normalize_data: true
+    
+    # Normalization method ('minmax', 'zscore', 'robust')
+    normalization_method: 'minmax'
+    
+    # Apply clipping before noise addition
+    apply_clipping: true
+  
+  # Post-processing settings
+  postprocessing:
+    # Round results to reduce precision leakage
+    round_results: true
+    
+    # Number of decimal places for rounding
+    decimal_places: 4
+    
+    # Apply consistency checks
+    consistency_checks: false
+
+# Utility-Privacy Trade-off Settings
+utility_privacy:
+  # Utility metrics to track
+  utility_metrics:
+    - 'accuracy'
+    - 'f1_score'
+    - 'precision'
+    - 'recall'
+  
+  # Privacy metrics to track
+  privacy_metrics:
+    - 'epsilon_consumed'
+    - 'delta_consumed'
+    - 'noise_level'
+  
+  # Trade-off analysis
+  analysis:
+    # Generate utility-privacy curves
+    generate_curves: true
+    
+    # Save trade-off analysis results
+    save_analysis: true
+    
+    # Output directory for analysis
+    output_dir: 'data/results/dp_analysis/'
+
+# Experimental Settings
+experiments:
+  # Multiple epsilon experiment
+  multi_epsilon:
+    # Run experiments with different epsilon values
+    enabled: true
+    
+    # Use all epsilon values from dp.epsilon_values
+    use_all_epsilons: true
+    
+    # Custom epsilon range (if use_all_epsilons is false)
+    custom_range:
+      start: 0.1
+      stop: 5.0
+      num_points: 10
+      scale: 'log'  # 'linear' or 'log'
+  
+  # Sensitivity analysis
+  sensitivity_analysis:
+    # Test different sensitivity values
+    enabled: false
+    
+    # Sensitivity values to test
+    test_values: [0.5, 1.0, 2.0, 5.0]
+  
+  # Noise distribution comparison
+  noise_comparison:
+    # Compare Laplace vs Gaussian mechanisms
+    enabled: false
+    
+    # Distributions to compare
+    distributions: ['laplace', 'gaussian']
+
+# Validation and Testing
+validation:
+  # Validate DP parameters
+  validate_parameters: true
+  
+  # Check privacy guarantees
+  verify_privacy: true
+  
+  # Test noise generation
+  test_noise_generation: false
+  
+  # Statistical tests for noise distribution
+  statistical_tests:
+    # Kolmogorov-Smirnov test for distribution
+    ks_test: false
+    
+    # Anderson-Darling test
+    ad_test: false
+    
+    # Significance level for tests
+    significance_level: 0.05
+
+# Logging and Monitoring
+logging:
+  # Log DP operations
+  log_operations: true
+  
+  # Log privacy budget consumption
+  log_budget_usage: true
+  
+  # Log noise statistics
+  log_noise_stats: true
+  
+  # DP-specific log level
+  dp_log_level: 'INFO'
+  
+  # Save DP logs to separate file
+  save_dp_logs: true
+  dp_log_file: 'logs/differential_privacy.log'
+  
+  # Monitor privacy leakage
+  monitor_leakage: false
+
+# Output and Reporting
+output:
+  # Save DP parameters used
+  save_parameters: true
+  
+  # Save noise samples for analysis
+  save_noise_samples: false
+  
+  # Generate DP analysis report
+  generate_report: true
+  
+  # Report format ('json', 'yaml', 'txt')
+  report_format: 'json'
+  
+  # Output directory
+  output_directory: 'data/results/dp_output/'

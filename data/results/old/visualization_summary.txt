@@ -1,0 +1,21 @@
+FHE Project - Visualization Summary
+============================================================
+
+Implemented Models:
+------------------------------------------------------------
+
+1. Logistic Regression (FHE):
+   Accuracy: 0.08
+   Training Time: 0.5791044235229492s
+   FHE Inference Time: 53.25s
+   Dataset: 1000 samples
+
+2. SVM (FHE):
+   Accuracy: 0.7415730337078652
+   Training Time: 0.029420852661132812s
+   Dataset: 442 samples
+
+
+Generated Visualizations:
+------------------------------------------------------------
+  - model_comparison.png (Logistic Regression vs SVM)

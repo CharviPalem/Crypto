@@ -1,0 +1,28 @@
+============================================================
+FHE LOGISTIC REGRESSION RESULTS
+============================================================
+
+Dataset Information:
+  Training samples: 800
+  Test samples: 200
+  Features: 717
+  Classes: 15
+
+Model Performance:
+  Clear Accuracy: 0.0800
+  FHE Accuracy: 0.0800
+  Accuracy Difference: 0.0000
+
+Timing Information:
+  Training Time: 0.58s
+  Clear Inference: 0.00s
+  FHE Inference: 53.25s
+  FHE Slowdown: 12932.3x
+
+Top Disease Classes:
+  1. Anxiety Disorder
+  2. Arthritis
+  3. Asthma
+  4. Atrial Fibrillation
+  5. Chronic Kidney Disease
+============================================================

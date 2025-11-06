@@ -1,0 +1,124 @@
+# FHE NLP Project - Model Configuration
+# This file defines the configuration parameters for machine learning models
+# used in the Fully Homomorphic Encryption (FHE) NLP pipeline.
+
+# Model Configuration
+model:
+  # Logistic Regression Configuration
+  # Used for FHE-compatible classification with Concrete-ML
+  logistic_regression:
+    # Number of bits for quantization (affects FHE circuit complexity)
+    n_bits: 8
+    
+    # Maximum number of iterations for optimization
+    max_iter: 100
+    
+    # L2 regularization parameter (helps prevent overfitting)
+    regularization: 0.01
+    
+    # Additional parameters for fine-tuning
+    solver: 'liblinear'  # Solver algorithm
+    random_state: 42     # For reproducible results
+    class_weight: 'balanced'  # Handle imbalanced datasets
+  
+  # Support Vector Machine Configuration  
+  # Used for privacy-preserving classification with encrypted inference
+  svm:
+    # Kernel type for SVM (rbf, linear, poly, sigmoid)
+    kernel: 'rbf'
+    
+    # Regularization parameter (controls margin vs. misclassification trade-off)
+    C: 1.0
+    
+    # Kernel coefficient for rbf, poly, and sigmoid kernels
+    gamma: 'scale'
+    
+    # Additional parameters for optimization
+    random_state: 42     # For reproducible results
+    max_iter: 1000       # Maximum iterations for convergence
+    probability: true    # Enable probability estimates
+    class_weight: 'balanced'  # Handle imbalanced datasets
+
+# Training Configuration
+training:
+  # Data splitting parameters
+  test_size: 0.2           # Fraction of data for testing
+  validation_size: 0.1     # Fraction of data for validation
+  random_state: 42         # For reproducible train/test splits
+  stratify: true           # Maintain class distribution in splits
+  
+  # Cross-validation settings
+  cv_folds: 5              # Number of folds for cross-validation
+  scoring: 'accuracy'      # Primary metric for model selection
+  
+  # Feature preprocessing
+  feature_scaling: true    # Apply StandardScaler to features
+  feature_selection: false # Apply feature selection (if needed)
+  max_features: null       # Maximum number of features to select
+
+# FHE-Specific Configuration
+fhe:
+  # Concrete-ML specific settings
+  concrete_ml:
+    # Compilation settings
+    show_mlir: false       # Show MLIR representation
+    use_sim: false         # Use simulation mode for debugging
+    
+    # Circuit optimization
+    optimize_circuit: true # Enable circuit optimization
+    
+  # Pyfhel specific settings  
+  pyfhel:
+    # BFV scheme parameters
+    scheme: 'BFV'          # Encryption scheme
+    poly_modulus_degree: 8192  # Polynomial modulus degree
+    plain_modulus: 1032193     # Plaintext modulus
+    
+    # Security parameters
+    sec_level: 128         # Security level in bits
+    
+# Evaluation Configuration
+evaluation:
+  # Metrics to compute
+  metrics:
+    - 'accuracy'
+    - 'precision'
+    - 'recall'
+    - 'f1_score'
+    - 'roc_auc'
+    - 'confusion_matrix'
+  
+  # Performance comparison
+  compare_clear_vs_encrypted: true  # Compare clear vs encrypted performance
+  
+  # Privacy analysis
+  privacy_analysis:
+    epsilon: 1.0           # Differential privacy parameter
+    delta: 1e-5           # Differential privacy failure probability
+    
+  # Security analysis
+  security_analysis:
+    analyze_noise_budget: true    # Analyze FHE noise budget
+    estimate_attack_resistance: true  # Estimate attack resistance
+
+# Logging and Output Configuration
+logging:
+  level: 'INFO'            # Logging level (DEBUG, INFO, WARNING, ERROR)
+  save_logs: true          # Save logs to file
+  log_file: 'logs/model_training.log'  # Log file path
+  
+# Output Configuration
+output:
+  # Model artifacts
+  save_models: true        # Save trained models
+  model_dir: 'models/'     # Directory for saved models
+  
+  # Results and metrics
+  save_results: true       # Save evaluation results
+  results_dir: 'data/results/'  # Directory for results
+  
+  # Plots and visualizations
+  save_plots: true         # Save generated plots
+  plots_dir: 'data/results/'    # Directory for plots
+  plot_format: 'png'       # Plot file format (png, pdf, svg)
+  plot_dpi: 300           # Plot resolution

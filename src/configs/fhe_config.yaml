@@ -1,0 +1,149 @@
+# FHE Configuration - Fully Homomorphic Encryption Settings
+# This file defines the cryptographic parameters for FHE operations
+# in the privacy-preserving NLP pipeline.
+
+# FHE Scheme Configuration
+fhe:
+  # Encryption scheme (BFV, BGV, CKKS)
+  # BFV is suitable for integer arithmetic and exact computations
+  scheme: BFV
+  
+  # Polynomial modulus degree (power of 2)
+  # Higher values provide more security but increase computation cost
+  # Common values: 4096, 8192, 16384, 32768
+  polynomial_modulus_degree: 16384
+  
+  # Plaintext modulus (prime number)
+  # Defines the plaintext space for BFV scheme
+  # Must be prime and congruent to 1 modulo 2*polynomial_modulus_degree
+  plaintext_modulus: 65537
+  
+  # Security level in bits
+  # 128-bit security is standard for most applications
+  # Higher values provide stronger security guarantees
+  security_level: 128
+  
+  # Enable SIMD batching for parallel operations
+  # Allows packing multiple values in a single ciphertext
+  # Significantly improves performance for vector operations
+  use_batching: true
+
+# Advanced FHE Parameters
+fhe_parameters:
+  # Ciphertext modulus chain (for modulus switching)
+  # Automatically generated based on security level and polynomial degree
+  ciphertext_modulus_bits: 438
+  
+  # Noise standard deviation for error distribution
+  # Lower values provide better precision but may affect security
+  noise_standard_deviation: 3.2
+  
+  # Key switching parameters
+  key_switching:
+    # Decomposition base for key switching
+    decomposition_base: 60
+    
+    # Number of decomposition levels
+    decomposition_levels: 4
+  
+  # Relinearization parameters
+  relinearization:
+    # Decomposition base for relinearization
+    decomposition_base: 60
+    
+    # Number of decomposition levels
+    decomposition_levels: 4
+
+# Performance and Optimization Settings
+performance:
+  # Enable multi-threading for FHE operations
+  enable_multithreading: true
+  
+  # Number of threads to use (0 = auto-detect)
+  num_threads: 0
+  
+  # Memory pool size in MB (0 = unlimited)
+  memory_pool_size: 0
+  
+  # Enable circuit optimization
+  optimize_circuits: true
+  
+  # Cache compiled circuits for reuse
+  cache_circuits: true
+
+# Security and Privacy Settings
+security:
+  # Enable secure random number generation
+  secure_random: true
+  
+  # Seed for reproducible results (set to null for true randomness)
+  random_seed: 42
+  
+  # Enable noise flooding for additional security
+  noise_flooding: false
+  
+  # Differential privacy parameters (if applicable)
+  differential_privacy:
+    epsilon: 1.0
+    delta: 1e-5
+
+# Library-Specific Settings
+libraries:
+  # Concrete-ML specific configuration
+  concrete_ml:
+    # Show MLIR intermediate representation
+    show_mlir: false
+    
+    # Use simulation mode for debugging
+    use_simulation: false
+    
+    # Compilation timeout in seconds
+    compilation_timeout: 300
+    
+    # Enable verbose compilation output
+    verbose_compilation: false
+  
+  # Pyfhel specific configuration
+  pyfhel:
+    # Context serialization settings
+    save_context: true
+    context_file: "fhe_context.bin"
+    
+    # Key serialization settings
+    save_keys: true
+    keys_directory: "keys/"
+    
+    # Enable context switching for different parameter sets
+    enable_context_switching: false
+
+# Validation and Testing
+validation:
+  # Run parameter validation on startup
+  validate_parameters: true
+  
+  # Test FHE operations with sample data
+  run_smoke_tests: false
+  
+  # Maximum acceptable noise budget consumption (%)
+  max_noise_budget_consumption: 90
+  
+  # Enable parameter compatibility checks
+  check_compatibility: true
+
+# Logging and Debugging
+logging:
+  # Log FHE operations and timings
+  log_operations: true
+  
+  # Log noise budget consumption
+  log_noise_budget: true
+  
+  # Log memory usage
+  log_memory_usage: false
+  
+  # FHE-specific log level (DEBUG, INFO, WARNING, ERROR)
+  fhe_log_level: INFO
+  
+  # Save FHE logs to separate file
+  save_fhe_logs: true
+  fhe_log_file: "logs/fhe_operations.log"
