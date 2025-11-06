@@ -16,6 +16,7 @@ from typing import Dict, List, Any
 import numpy as np
 from pathlib import Path
 import sys
+import yaml
 
 # Configure logging
 logging.basicConfig(
@@ -23,6 +24,52 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def load_dp_config(config_path: str = "src/configs/dp_config.yaml") -> Dict[str, Any]:
+    """
+    Load differential privacy configuration from YAML file
+    
+    Args:
+        config_path: Path to DP configuration file
+        
+    Returns:
+        Configuration dictionary
+    """
+    try:
+        config_file = Path(config_path)
+        if not config_file.exists():
+            logger.warning(f"DP config not found at {config_path}, using defaults")
+            return {
+                'dp': {
+                    'epsilon_values': [1.0],
+                    'delta': 1e-5,
+                    'sensitivity': 1.0,
+                    'noise_distribution': 'laplace'
+                }
+            }
+        
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        logger.info(f"✅ DP configuration loaded from: {config_path}")
+        logger.info(f"   Epsilon values: {config['dp']['epsilon_values']}")
+        logger.info(f"   Delta: {config['dp']['delta']}")
+        logger.info(f"   Noise distribution: {config['dp']['noise_distribution']}")
+        
+        return config
+        
+    except Exception as e:
+        logger.error(f"Error loading DP config: {e}")
+        logger.warning("Using default DP parameters")
+        return {
+            'dp': {
+                'epsilon_values': [1.0],
+                'delta': 1e-5,
+                'sensitivity': 1.0,
+                'noise_distribution': 'laplace'
+            }
+        }
 
 
 def hash_identifier(identifier: str, salt: str = "medical_fhe_2024") -> str:
@@ -45,26 +92,35 @@ def hash_identifier(identifier: str, salt: str = "medical_fhe_2024") -> str:
     return hash_object.hexdigest()[:12]  # Return first 12 characters
 
 
-def add_dp_noise(value: float, epsilon: float, sensitivity: float = 1.0) -> float:
+def add_dp_noise(value: float, epsilon: float, sensitivity: float = 1.0, 
+                 noise_distribution: str = 'laplace', delta: float = 1e-5) -> float:
     """
-    Add Laplacian noise for differential privacy
+    Add noise for differential privacy (supports Laplace and Gaussian mechanisms)
     
     Args:
         value: Original numeric value
         epsilon: Privacy parameter (smaller = more privacy)
         sensitivity: Sensitivity of the query (default: 1.0)
+        noise_distribution: Type of noise ('laplace' or 'gaussian')
+        delta: Failure probability for Gaussian mechanism (default: 1e-5)
     
     Returns:
-        Value with added Laplacian noise
+        Value with added DP noise
     """
     if epsilon <= 0:
         raise ValueError("Epsilon must be positive")
     
-    # Scale parameter for Laplacian distribution
-    scale = sensitivity / epsilon
-    
-    # Generate Laplacian noise
-    noise = np.random.laplace(0, scale)
+    if noise_distribution.lower() == 'laplace':
+        # Laplace mechanism for ε-DP
+        scale = sensitivity / epsilon
+        noise = np.random.laplace(0, scale)
+    elif noise_distribution.lower() == 'gaussian':
+        # Gaussian mechanism for (ε,δ)-DP
+        # sigma = sensitivity * sqrt(2 * ln(1.25/delta)) / epsilon
+        sigma = sensitivity * np.sqrt(2 * np.log(1.25 / delta)) / epsilon
+        noise = np.random.normal(0, sigma)
+    else:
+        raise ValueError(f"Unknown noise distribution: {noise_distribution}")
     
     return max(0, value + noise)  # Ensure non-negative values
 
@@ -123,13 +179,16 @@ def generalize_age(age: int) -> str:
         return "65_plus"
 
 
-def anonymize_record(record: Dict[str, Any], epsilon: float) -> Dict[str, Any]:
+def anonymize_record(record: Dict[str, Any], epsilon: float, 
+                    noise_distribution: str = 'laplace', delta: float = 1e-5) -> Dict[str, Any]:
     """
-    Anonymize a single medical record
+    Anonymize a single medical record with DP noise from config
     
     Args:
         record: Original medical record
         epsilon: Privacy parameter for differential privacy
+        noise_distribution: Type of noise ('laplace' or 'gaussian')
+        delta: Failure probability for Gaussian mechanism
     
     Returns:
         Anonymized medical record
@@ -148,7 +207,8 @@ def anonymize_record(record: Dict[str, Any], epsilon: float) -> Dict[str, Any]:
     # Generalize age instead of adding noise (more practical for age groups)
     original_age = record.get('age', 0)
     anonymized['age_group'] = generalize_age(original_age)
-    anonymized['age_dp'] = int(add_dp_noise(original_age, epsilon, sensitivity=5))  # Age sensitivity = 5 years
+    anonymized['age_dp'] = int(add_dp_noise(original_age, epsilon, sensitivity=5, 
+                                            noise_distribution=noise_distribution, delta=delta))
     
     # Keep gender as is (already categorical)
     anonymized['gender'] = record.get('gender', 'Unknown')
@@ -161,9 +221,9 @@ def anonymize_record(record: Dict[str, Any], epsilon: float) -> Dict[str, Any]:
     anonymized['medical_notes_clean'] = clean_text(original_notes)
     
     # Add noise to any numeric fields that might be present
-    # (In this case, we don't have weight, but we'll prepare for it)
     if 'weight' in record:
-        anonymized['weight_dp'] = add_dp_noise(record['weight'], epsilon, sensitivity=2)
+        anonymized['weight_dp'] = add_dp_noise(record['weight'], epsilon, sensitivity=2,
+                                               noise_distribution=noise_distribution, delta=delta)
     
     return anonymized
 
@@ -282,8 +342,15 @@ Examples:
     parser.add_argument(
         '--epsilon', '-e',
         type=float,
-        default=1.0,
-        help='Epsilon parameter for differential privacy (default: 1.0, smaller = more privacy)'
+        default=None,
+        help='Epsilon parameter for differential privacy (default: from config, smaller = more privacy)'
+    )
+    
+    parser.add_argument(
+        '--dp-config',
+        type=str,
+        default='src/configs/dp_config.yaml',
+        help='Path to DP configuration file (default: src/configs/dp_config.yaml)'
     )
     
     parser.add_argument(
@@ -313,15 +380,26 @@ Examples:
         np.random.seed(args.seed)
         logger.info(f"Using random seed: {args.seed}")
     
-    # Validate arguments
-    if args.epsilon <= 0:
+    # Validate epsilon if provided
+    if args.epsilon is not None and args.epsilon <= 0:
         logger.error("Epsilon must be positive")
         sys.exit(1)
     
     logger.info("Starting medical data preprocessing")
-    logger.info(f"Parameters: input={args.input}, output={args.output}, epsilon={args.epsilon}")
     
     try:
+        # Load DP configuration
+        dp_config = load_dp_config(args.dp_config)
+        
+        # Use epsilon from args or config
+        epsilon = args.epsilon if args.epsilon is not None else dp_config['dp']['epsilon_values'][0]
+        delta = dp_config['dp']['delta']
+        sensitivity = dp_config['dp']['sensitivity']
+        noise_dist = dp_config['dp']['noise_distribution']
+        
+        logger.info(f"Parameters: input={args.input}, output={args.output}")
+        logger.info(f"DP Settings: epsilon={epsilon}, delta={delta}, noise={noise_dist}")
+        
         # Load dataset
         dataset = load_dataset(args.input)
         original_records = dataset['data']
@@ -338,7 +416,7 @@ Examples:
             if (i + 1) % 100 == 0 or i == 0:
                 logger.info(f"Processed {i + 1}/{len(original_records)} records")
             
-            anonymized_record = anonymize_record(record, args.epsilon)
+            anonymized_record = anonymize_record(record, epsilon, noise_dist, delta)
             anonymized_records.append(anonymized_record)
         
         # Create processed dataset
@@ -346,12 +424,16 @@ Examples:
             "metadata": {
                 "total_records": len(anonymized_records),
                 "description": "Anonymized and differentially private medical dataset",
-                "epsilon": args.epsilon,
+                "epsilon": epsilon,
+                "delta": delta,
+                "sensitivity": sensitivity,
+                "noise_distribution": noise_dist,
+                "dp_config_file": args.dp_config,
                 "processing_steps": [
                     "PII hashing/generalization",
                     "Age group generalization",
                     "Text cleaning and normalization",
-                    "Differential privacy noise injection"
+                    f"Differential privacy ({noise_dist} noise injection)"
                 ],
                 "fields": list(anonymized_records[0].keys()) if anonymized_records else []
             },
@@ -374,11 +456,13 @@ Examples:
         print(f"Input file: {args.input}")
         print(f"Output file: {args.output}")
         print(f"Records processed: {len(anonymized_records)}")
-        print(f"Epsilon (privacy): {args.epsilon}")
+        print(f"Epsilon (privacy): {epsilon}")
+        print(f"Delta: {delta}")
+        print(f"Noise distribution: {noise_dist}")
         print(f"Privacy techniques applied:")
         print(f"  - PII hashing (SHA-256)")
         print(f"  - Age generalization")
-        print(f"  - Differential privacy (Laplacian noise)")
+        print(f"  - Differential privacy ({noise_dist} noise)")
         print(f"  - Text normalization")
         print(f"{'='*50}")
         

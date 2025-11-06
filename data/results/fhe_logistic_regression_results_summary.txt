@@ -6,23 +6,20 @@ Dataset Information:
   Training samples: 800
   Test samples: 200
   Features: 717
-  Classes: 15
+  Classes: 2
 
 Model Performance:
-  Clear Accuracy: 0.0800
-  FHE Accuracy: 0.0800
+  Clear Accuracy: 0.7950
+  FHE Accuracy: 0.7950
   Accuracy Difference: 0.0000
 
 Timing Information:
-  Training Time: 0.58s
+  Training Time: 0.34s
   Clear Inference: 0.00s
-  FHE Inference: 53.25s
-  FHE Slowdown: 12932.3x
+  FHE Inference: 51.11s
+  FHE Slowdown: 19822.6x
 
 Top Disease Classes:
-  1. Anxiety Disorder
-  2. Arthritis
-  3. Asthma
-  4. Atrial Fibrillation
-  5. Chronic Kidney Disease
+  1. Cardiovascular
+  2. Non-Cardiovascular
 ============================================================

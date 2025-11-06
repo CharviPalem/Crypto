@@ -16,6 +16,7 @@ from pathlib import Path
 import sys
 from typing import Dict, List, Tuple, Any, Optional
 import warnings
+import yaml
 
 # Plotting imports
 import matplotlib.pyplot as plt
@@ -44,20 +45,50 @@ class PrivacyUtilityAnalyzer:
     comprehensive visualizations showing how privacy parameters affect model utility.
     """
     
-    def __init__(self, results_dir: str = "data/results", evaluation_dir: str = "data/evaluation"):
+    def __init__(self, results_dir: str = "data/results", evaluation_dir: str = "data/evaluation",
+                 dp_config_path: str = "src/configs/dp_config.yaml"):
         """
         Initialize the Privacy-Utility Analyzer
         
         Args:
             results_dir: Directory containing result JSON files
             evaluation_dir: Directory containing evaluation JSON files
+            dp_config_path: Path to DP configuration file
         """
         self.results_dir = Path(results_dir)
         self.evaluation_dir = Path(evaluation_dir)
         self.data_points = []
         self.loaded_files = []
+        self.dp_config = self.load_dp_config(dp_config_path)
         
         logger.info("Privacy-Utility Analyzer initialized")
+    
+    def load_dp_config(self, config_path: str) -> Dict[str, Any]:
+        """
+        Load differential privacy configuration from YAML file
+        
+        Args:
+            config_path: Path to DP configuration file
+            
+        Returns:
+            Configuration dictionary
+        """
+        try:
+            config_file = Path(config_path)
+            if not config_file.exists():
+                logger.warning(f"DP config not found at {config_path}, using defaults")
+                return {'dp': {'epsilon_values': [0.1, 0.5, 1.0, 2.0, 5.0]}}
+            
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+            
+            logger.info(f"✅ DP configuration loaded from: {config_path}")
+            logger.info(f"   Epsilon values for analysis: {config['dp']['epsilon_values']}")
+            return config
+            
+        except Exception as e:
+            logger.error(f"Error loading DP config: {e}")
+            return {'dp': {'epsilon_values': [0.1, 0.5, 1.0, 2.0, 5.0]}}
     
     def load_evaluation_data(self, file_patterns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
@@ -551,6 +582,95 @@ class PrivacyUtilityAnalyzer:
         stats.append(f"Accuracy Range: {df['accuracy'].min():.3f} - {df['accuracy'].max():.3f}")
         
         return '\n'.join(stats)
+    
+    def plot_accuracy_vs_epsilon(
+        self,
+        model_results: List[Dict[str, Any]],
+        output_path: str = "data/results/accuracy_vs_epsilon.png",
+        figsize: Tuple[int, int] = (12, 7)
+    ) -> str:
+        """
+        Plot accuracy vs epsilon using config epsilon values
+        
+        Args:
+            model_results: List of model results with epsilon and accuracy
+            output_path: Path to save the plot
+            figsize: Figure size
+            
+        Returns:
+            Path to saved plot
+        """
+        logger.info("Creating accuracy vs epsilon plot using DP config...")
+        
+        # Get epsilon values from config
+        config_epsilons = self.dp_config.get('dp', {}).get('epsilon_values', [0.1, 0.5, 1.0, 2.0, 5.0])
+        
+        # Create figure
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Extract data
+        epsilons = []
+        accuracies = []
+        models = []
+        
+        for result in model_results:
+            if 'epsilon' in result and 'accuracy' in result:
+                epsilons.append(result['epsilon'])
+                accuracies.append(result['accuracy'])
+                models.append(result.get('model_type', 'Unknown'))
+        
+        if not epsilons:
+            logger.warning("No epsilon/accuracy data found in results")
+            return ""
+        
+        # Create DataFrame
+        df = pd.DataFrame({
+            'epsilon': epsilons,
+            'accuracy': accuracies,
+            'model': models
+        })
+        
+        # Plot for each model
+        for model in df['model'].unique():
+            model_data = df[df['model'] == model].sort_values('epsilon')
+            ax.plot(model_data['epsilon'], model_data['accuracy'], 
+                   marker='o', markersize=8, linewidth=2.5, label=model, alpha=0.8)
+        
+        # Highlight config epsilon values
+        for eps in config_epsilons:
+            ax.axvline(x=eps, color='gray', linestyle='--', alpha=0.3, linewidth=1)
+            ax.text(eps, ax.get_ylim()[1] * 0.98, f'ε={eps}', 
+                   rotation=90, va='top', ha='right', fontsize=8, alpha=0.6)
+        
+        # Styling
+        ax.set_xlabel('Privacy Budget (ε)', fontsize=13, fontweight='bold')
+        ax.set_ylabel('Model Accuracy', fontsize=13, fontweight='bold')
+        ax.set_title('Privacy-Utility Tradeoff: Accuracy vs Epsilon (ε)', 
+                    fontsize=15, fontweight='bold', pad=20)
+        ax.set_xscale('log')
+        ax.grid(True, alpha=0.3, linestyle=':', linewidth=0.8)
+        ax.legend(loc='best', frameon=True, shadow=True, fontsize=10)
+        
+        # Add privacy regions
+        ax.axvspan(0.01, 0.1, alpha=0.1, color='green', label='High Privacy')
+        ax.axvspan(0.1, 1.0, alpha=0.1, color='yellow', label='Medium Privacy')
+        ax.axvspan(1.0, 10.0, alpha=0.1, color='red', label='Low Privacy')
+        
+        # Add annotation
+        textstr = f'Config ε values: {config_epsilons}\\nLower ε = Better Privacy\\nHigher ε = Better Utility'
+        ax.text(0.02, 0.02, textstr, transform=ax.transAxes, fontsize=9,
+               verticalalignment='bottom', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        plt.tight_layout()
+        
+        # Save
+        output_file = Path(output_path)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        logger.info(f"✅ Accuracy vs epsilon plot saved to: {output_file}")
+        
+        plt.close()
+        return str(output_file)
     
     def generate_summary_report(self, data_points: List[Dict[str, Any]]) -> Dict[str, Any]:
         """

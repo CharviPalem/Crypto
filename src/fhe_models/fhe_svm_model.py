@@ -14,14 +14,15 @@ import time
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 import sys
+import yaml
 
 # Scikit-learn imports
-from sklearn.datasets import load_diabetes, load_breast_cancer, load_wine
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 # Pyfhel imports
 try:
@@ -41,6 +42,134 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def load_fhe_config(config_path: str = "src/configs/fhe_config.yaml") -> Dict[str, Any]:
+    """
+    Load FHE configuration from YAML file
+    
+    Args:
+        config_path: Path to FHE configuration file
+        
+    Returns:
+        Configuration dictionary
+    """
+    try:
+        config_file = Path(config_path)
+        if not config_file.exists():
+            logger.warning(f"FHE config not found at {config_path}, using defaults")
+            return {
+                'fhe': {
+                    'scheme': 'BFV',
+                    'polynomial_modulus_degree': 8192,
+                    'plaintext_modulus': 1032193,
+                    'security_level': 128
+                }
+            }
+        
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        logger.info(f"✅ FHE configuration loaded from: {config_path}")
+        logger.info(f"   Scheme: {config['fhe']['scheme']}")
+        logger.info(f"   Polynomial modulus degree: {config['fhe']['polynomial_modulus_degree']}")
+        logger.info(f"   Security level: {config['fhe']['security_level']} bits")
+        
+        return config
+        
+    except Exception as e:
+        logger.error(f"Error loading FHE config: {e}")
+        logger.warning("Using default FHE parameters")
+        return {
+            'fhe': {
+                'scheme': 'BFV',
+                'polynomial_modulus_degree': 8192,
+                'plaintext_modulus': 1032193,
+                'security_level': 128
+            }
+        }
+
+
+def setup_fhe_context_from_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Setup FHE context parameters from config for Pyfhel
+    
+    Args:
+        config: FHE configuration dictionary
+        
+    Returns:
+        FHE context parameters for Pyfhel
+    """
+    fhe_params = config.get('fhe', {})
+    
+    # Map config to Pyfhel parameters
+    context_params = {
+        'scheme': fhe_params.get('scheme', 'BFV').lower(),  # Pyfhel uses lowercase
+        'n': fhe_params.get('polynomial_modulus_degree', 8192),  # Polynomial modulus degree
+        't': fhe_params.get('plaintext_modulus', 1032193),  # Plaintext modulus
+        't_bits': 20,  # Bits for plaintext modulus (alternative to t)
+        'sec': fhe_params.get('security_level', 128)  # Security level
+    }
+    
+    logger.info("Pyfhel FHE context parameters configured:")
+    logger.info(f"  Scheme: {context_params['scheme']}")
+    logger.info(f"  Polynomial modulus degree (n): {context_params['n']}")
+    logger.info(f"  Security level: {context_params['sec']} bits")
+    
+    return context_params
+
+
+def load_model_config(config_path: str = "src/configs/model_config.yaml") -> Dict[str, Any]:
+    """
+    Load model configuration from YAML file
+    
+    Args:
+        config_path: Path to model configuration file
+        
+    Returns:
+        Configuration dictionary
+    """
+    try:
+        config_file = Path(config_path)
+        if not config_file.exists():
+            logger.warning(f"Model config not found at {config_path}, using defaults")
+            return {
+                'model': {
+                    'svm': {
+                        'kernel': 'rbf',
+                        'C': 1.0,
+                        'gamma': 'scale',
+                        'random_state': 42,
+                        'max_iter': 1000
+                    }
+                }
+            }
+        
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        logger.info(f"✅ Model configuration loaded from: {config_path}")
+        svm_params = config.get('model', {}).get('svm', {})
+        logger.info(f"   SVM kernel: {svm_params.get('kernel', 'rbf')}")
+        logger.info(f"   SVM C: {svm_params.get('C', 1.0)}")
+        logger.info(f"   SVM gamma: {svm_params.get('gamma', 'scale')}")
+        
+        return config
+        
+    except Exception as e:
+        logger.error(f"Error loading model config: {e}")
+        logger.warning("Using default model parameters")
+        return {
+            'model': {
+                'svm': {
+                    'kernel': 'rbf',
+                    'C': 1.0,
+                    'gamma': 'scale',
+                    'random_state': 42,
+                    'max_iter': 1000
+                }
+            }
+        }
+
+
 class PrivacyPreservingSVM:
     """
     Privacy-Preserving SVM using homomorphic encryption
@@ -52,36 +181,46 @@ class PrivacyPreservingSVM:
     4. Decrypt results for evaluation
     """
     
-    def __init__(self, kernel='linear', C=1.0):
+    def __init__(self, kernel='linear', C=1.0, fhe_context_params: Dict[str, Any] = None):
         """
         Initialize the Privacy-Preserving SVM
         
         Args:
             kernel: SVM kernel type (default: 'linear')
             C: Regularization parameter (default: 1.0)
+            fhe_context_params: FHE context parameters from config (optional)
         """
         self.kernel = kernel
         self.C = C
         self.model = None
         self.scaler = StandardScaler()
-        self.label_binarizer = LabelBinarizer()
         self.HE = None
         self.is_trained = False
+        self.fhe_context_params = fhe_context_params or {}
         
         # Initialize Pyfhel if available
         if PYFHEL_AVAILABLE:
             self._setup_homomorphic_encryption()
     
     def _setup_homomorphic_encryption(self):
-        """Setup Pyfhel homomorphic encryption context"""
+        """Setup Pyfhel homomorphic encryption context using config parameters"""
         try:
             self.HE = Pyfhel()
-            # Configure for integer operations with sufficient precision
-            self.HE.contextGen(scheme='bfv', n=8192, t_bits=20, sec=128)
+            
+            # Use config parameters if available, otherwise use defaults
+            scheme = self.fhe_context_params.get('scheme', 'bfv')
+            n = self.fhe_context_params.get('n', 8192)
+            t_bits = self.fhe_context_params.get('t_bits', 20)
+            sec = self.fhe_context_params.get('sec', 128)
+            
+            # Configure for integer operations with parameters from config
+            self.HE.contextGen(scheme=scheme, n=n, t_bits=t_bits, sec=sec)
             self.HE.keyGen()
             self.HE.relinKeyGen()
             self.HE.rotateKeyGen()
+            
             logger.info("Homomorphic encryption context initialized successfully")
+            logger.info(f"  Using scheme={scheme}, n={n}, t_bits={t_bits}, sec={sec}")
         except Exception as e:
             logger.error(f"Failed to setup homomorphic encryption: {e}")
             self.HE = None
@@ -104,21 +243,23 @@ class PrivacyPreservingSVM:
         # Standardize features
         X_train_scaled = self.scaler.fit_transform(X_train)
         
-        # Handle multi-class classification
-        y_train_encoded = self.label_binarizer.fit_transform(y_train)
-        if y_train_encoded.shape[1] == 1:
-            y_train_encoded = y_train_encoded.ravel()
-        
-        # Train SVM
-        self.model = SVC(kernel=self.kernel, C=self.C, probability=True, random_state=42)
-        self.model.fit(X_train_scaled, y_train_encoded)
+        # Train SVM (labels are already encoded as 0/1 from LabelEncoder)
+        # Use configured parameters
+        self.model = SVC(
+            kernel=self.kernel, 
+            C=self.C, 
+            probability=True, 
+            random_state=42,
+            max_iter=1000  # Can be overridden by config
+        )
+        self.model.fit(X_train_scaled, y_train)
         
         training_time = time.time() - start_time
         self.is_trained = True
         
         # Calculate training accuracy
         train_pred = self.model.predict(X_train_scaled)
-        train_accuracy = accuracy_score(y_train_encoded, train_pred)
+        train_accuracy = accuracy_score(y_train, train_pred)
         
         logger.info(f"Model training completed in {training_time:.2f} seconds")
         logger.info(f"Training accuracy: {train_accuracy:.4f}")
@@ -314,36 +455,138 @@ class PrivacyPreservingSVM:
         return predictions, inference_time
 
 
-def load_dataset(dataset_name: str) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+def load_preprocessed_data(file_path: str) -> pd.DataFrame:
     """
-    Load specified dataset
+    Load preprocessed medical dataset from JSON file
     
     Args:
-        dataset_name: Name of dataset to load
+        file_path: Path to preprocessed JSON file
+    
+    Returns:
+        DataFrame with preprocessed medical records
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        if 'data' not in data:
+            raise ValueError("Dataset must contain 'data' field")
+        
+        df = pd.DataFrame(data['data'])
+        logger.info(f"Loaded {len(df)} records from {file_path}")
+        
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"File not found: {file_path}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error loading data: {e}")
+        sys.exit(1)
+
+
+def convert_to_binary_classification(labels: pd.Series) -> Tuple[pd.Series, Dict[str, Any]]:
+    """
+    Convert multi-class disease labels to binary classification
+    
+    Strategy: Group diseases into two categories:
+    - Cardiovascular diseases (1)
+    - Other diseases (0)
+    
+    Args:
+        labels: Original disease labels
         
     Returns:
-        Tuple of (features, labels, feature_names)
+        Tuple of (binary_labels, mapping_info)
     """
-    if dataset_name.lower() == 'diabetes':
-        # Convert diabetes regression to classification
-        data = load_diabetes()
-        X, y = data.data, data.target
-        # Convert to binary classification (above/below median)
-        y_binary = (y > np.median(y)).astype(int)
-        return X, y_binary, data.feature_names
+    # Define cardiovascular diseases
+    cardiovascular_diseases = [
+        'Coronary Artery Disease',
+        'Atrial Fibrillation',
+        'Hypertension'
+    ]
     
-    elif dataset_name.lower() == 'breast_cancer':
-        data = load_breast_cancer()
-        return data.data, data.target, data.feature_names
+    # Create binary labels
+    binary_labels = labels.apply(
+        lambda x: 'Cardiovascular' if x in cardiovascular_diseases else 'Non-Cardiovascular'
+    )
     
-    elif dataset_name.lower() == 'wine':
-        data = load_wine()
-        # Convert to binary classification (class 0 vs others)
-        y_binary = (data.target == 0).astype(int)
-        return data.data, y_binary, data.feature_names
+    # Create mapping info
+    mapping_info = {
+        'strategy': 'cardiovascular_vs_other',
+        'cardiovascular_diseases': cardiovascular_diseases,
+        'class_0': 'Non-Cardiovascular',
+        'class_1': 'Cardiovascular',
+        'original_classes': labels.unique().tolist(),
+        'original_class_count': len(labels.unique()),
+        'binary_class_distribution': binary_labels.value_counts().to_dict()
+    }
     
+    logger.info(f"Converted {len(labels.unique())} classes to binary classification")
+    logger.info(f"  - Cardiovascular: {sum(binary_labels == 'Cardiovascular')} samples")
+    logger.info(f"  - Non-Cardiovascular: {sum(binary_labels == 'Non-Cardiovascular')} samples")
+    
+    return binary_labels, mapping_info
+
+
+def prepare_features_and_labels(df: pd.DataFrame, vectorizer_type: str = "tfidf", 
+                               max_features: int = 1000) -> Tuple[np.ndarray, np.ndarray, Any, Any, Dict]:
+    """
+    Convert text data to numerical features and prepare labels
+    
+    Args:
+        df: DataFrame with medical records
+        vectorizer_type: Type of vectorizer ("tfidf" or "count")
+        max_features: Maximum number of features to extract
+    
+    Returns:
+        Tuple of (features, labels, vectorizer, label_encoder, binary_mapping_info)
+    """
+    # Use medical notes as features
+    if 'medical_notes_clean' in df.columns:
+        texts = df['medical_notes_clean'].fillna('').astype(str)
+    elif 'medical_notes' in df.columns:
+        texts = df['medical_notes'].fillna('').astype(str)
     else:
-        raise ValueError(f"Unknown dataset: {dataset_name}")
+        raise ValueError("Dataset must contain 'medical_notes' or 'medical_notes_clean' column")
+    
+    # Use disease as target variable
+    labels = df['disease'].fillna('Unknown')
+    
+    # Convert to binary classification
+    labels, binary_mapping_info = convert_to_binary_classification(labels)
+    
+    # Initialize vectorizer
+    if vectorizer_type.lower() == "tfidf":
+        vectorizer = TfidfVectorizer(
+            max_features=max_features,
+            stop_words='english',
+            ngram_range=(1, 2),
+            min_df=2,
+            max_df=0.95
+        )
+    else:
+        vectorizer = CountVectorizer(
+            max_features=max_features,
+            stop_words='english',
+            ngram_range=(1, 2),
+            min_df=2,
+            max_df=0.95
+        )
+    
+    # Transform text to features
+    logger.info(f"Extracting features using {vectorizer_type} vectorizer...")
+    X = vectorizer.fit_transform(texts).toarray()
+    
+    # Encode labels
+    label_encoder = LabelEncoder()
+    y = label_encoder.fit_transform(labels)
+    
+    logger.info(f"Feature matrix shape: {X.shape}")
+    logger.info(f"Number of unique classes: {len(label_encoder.classes_)}")
+    logger.info(f"Classes: {list(label_encoder.classes_)}")
+    
+    return X, y, vectorizer, label_encoder, binary_mapping_info
 
 
 def evaluate_predictions(y_true: np.ndarray, y_pred: np.ndarray, 
@@ -408,9 +651,11 @@ def print_results_summary(results: Dict[str, Any]) -> None:
     
     print(f"\nDataset Information:")
     print(f"  Dataset: {results['experiment_info']['dataset']}")
+    print(f"  Classification: {results['experiment_info']['classification_type']}")
     print(f"  Training samples: {results['dataset_info']['train_size']}")
     print(f"  Test samples: {results['dataset_info']['test_size']}")
     print(f"  Features: {results['dataset_info']['n_features']}")
+    print(f"  Classes: {results['dataset_info']['n_classes']} ({', '.join(results['dataset_info']['class_names'])})")
     
     print(f"\nModel Information:")
     print(f"  Kernel: {results['training_info']['kernel']}")
@@ -442,21 +687,35 @@ def print_results_summary(results: Dict[str, Any]) -> None:
 def main():
     """Main function with CLI interface"""
     parser = argparse.ArgumentParser(
-        description="Privacy-Preserving SVM with Homomorphic Encryption",
+        description="Privacy-Preserving SVM with Homomorphic Encryption - Medical Text Classification",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python fhe_svm_model.py --dataset diabetes --output data/results/fhe_svm_results.json
-  python fhe_svm_model.py --dataset breast_cancer --kernel rbf --C 0.1
+  python fhe_svm_model.py --train data/processed/preprocessed_data.json --output data/results/fhe_svm_results.json
+  python fhe_svm_model.py --train data/processed/preprocessed_data.json --kernel rbf --C 0.1
         """
     )
     
     parser.add_argument(
-        '--dataset',
+        '--train',
         type=str,
-        choices=['diabetes', 'breast_cancer', 'wine'],
-        default='diabetes',
-        help='Dataset to use for demonstration (default: diabetes)'
+        required=True,
+        help='Path to preprocessed training dataset (JSON format)'
+    )
+    
+    parser.add_argument(
+        '--vectorizer',
+        type=str,
+        choices=['tfidf', 'count'],
+        default='tfidf',
+        help='Type of text vectorizer to use (default: tfidf)'
+    )
+    
+    parser.add_argument(
+        '--max-features',
+        type=int,
+        default=1000,
+        help='Maximum number of features to extract (default: 1000)'
     )
     
     parser.add_argument(
@@ -507,18 +766,53 @@ Examples:
         help='Skip encrypted inference (clear inference only)'
     )
     
+    parser.add_argument(
+        '--fhe-config',
+        type=str,
+        default='src/configs/fhe_config.yaml',
+        help='Path to FHE configuration file (default: src/configs/fhe_config.yaml)'
+    )
+    
+    parser.add_argument(
+        '--model-config',
+        type=str,
+        default='src/configs/model_config.yaml',
+        help='Path to model configuration file (default: src/configs/model_config.yaml)'
+    )
+    
     args = parser.parse_args()
     
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
-    logger.info("Starting Privacy-Preserving SVM demonstration")
-    logger.info(f"Parameters: dataset={args.dataset}, kernel={args.kernel}, C={args.C}")
+    logger.info("Starting Privacy-Preserving SVM for Medical Text Classification")
+    logger.info(f"Parameters: train={args.train}, vectorizer={args.vectorizer}, kernel={args.kernel}, C={args.C}")
+    
+    # Set random seed
+    np.random.seed(args.seed)
     
     try:
-        # Load dataset
-        X, y, feature_names = load_dataset(args.dataset)
-        logger.info(f"Loaded {args.dataset} dataset: {X.shape[0]} samples, {X.shape[1]} features")
+        # Load FHE configuration
+        fhe_config = load_fhe_config(args.fhe_config)
+        fhe_context_params = setup_fhe_context_from_config(fhe_config)
+        
+        # Load model configuration
+        model_config = load_model_config(args.model_config)
+        svm_params = model_config.get('model', {}).get('svm', {})
+        
+        # Use config params or CLI args (CLI takes precedence)
+        kernel = args.kernel if args.kernel != 'linear' else svm_params.get('kernel', 'linear')
+        C = args.C if args.C != 1.0 else svm_params.get('C', 1.0)
+        
+        logger.info(f"Using SVM parameters: kernel={kernel}, C={C}")
+        
+        # Load preprocessed medical data
+        df = load_preprocessed_data(args.train)
+        
+        # Prepare features and labels (with binary classification)
+        X, y, vectorizer, label_encoder, binary_mapping = prepare_features_and_labels(
+            df, args.vectorizer, args.max_features
+        )
         
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
@@ -527,15 +821,15 @@ Examples:
         
         logger.info(f"Data split: {len(X_train)} train, {len(X_test)} test samples")
         
-        # Initialize Privacy-Preserving SVM
-        ppsvm = PrivacyPreservingSVM(kernel=args.kernel, C=args.C)
+        # Initialize Privacy-Preserving SVM with FHE context and model params from config
+        ppsvm = PrivacyPreservingSVM(kernel=kernel, C=C, fhe_context_params=fhe_context_params)
         
         # Train model
         training_info = ppsvm.train(X_train, y_train)
         
         # Perform clear inference
         clear_predictions, clear_inference_time = ppsvm.predict_clear(X_test)
-        clear_results = evaluate_predictions(y_test, clear_predictions)
+        clear_results = evaluate_predictions(y_test, clear_predictions, label_encoder.classes_.tolist())
         
         # Perform encrypted inference
         encrypted_results = None
@@ -543,7 +837,7 @@ Examples:
         if not args.skip_encryption and PYFHEL_AVAILABLE:
             try:
                 encrypted_predictions, encrypted_inference_time = ppsvm.predict_encrypted(X_test)
-                encrypted_results = evaluate_predictions(y_test, encrypted_predictions)
+                encrypted_results = evaluate_predictions(y_test, encrypted_predictions, label_encoder.classes_.tolist())
             except Exception as e:
                 logger.error(f"Encrypted inference failed: {e}")
                 logger.warning("Continuing with clear inference results only")
@@ -552,19 +846,28 @@ Examples:
         results = {
             "experiment_info": {
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "dataset": args.dataset,
-                "kernel": args.kernel,
-                "C": args.C,
+                "dataset": "medical_text",
+                "vectorizer_type": args.vectorizer,
+                "max_features": args.max_features,
+                "kernel": kernel,
+                "C": C,
                 "test_size": args.test_size,
                 "random_seed": args.seed,
-                "pyfhel_available": PYFHEL_AVAILABLE
+                "pyfhel_available": PYFHEL_AVAILABLE,
+                "classification_type": "binary",
+                "binary_mapping": binary_mapping,
+                "fhe_config_file": args.fhe_config,
+                "fhe_context": fhe_context_params,
+                "model_config_file": args.model_config,
+                "model_parameters": svm_params
             },
             "dataset_info": {
-                "total_samples": len(X),
+                "total_samples": len(df),
                 "train_size": len(X_train),
                 "test_size": len(X_test),
                 "n_features": X.shape[1],
-                "feature_names": list(feature_names) if feature_names is not None else []
+                "n_classes": len(label_encoder.classes_),
+                "class_names": label_encoder.classes_.tolist()
             },
             "training_info": training_info,
             "timing": {

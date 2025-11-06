@@ -1,803 +1,164 @@
 {
   "experiment_info": {
-    "timestamp": "2025-11-06 14:35:25",
+    "timestamp": "2025-11-06 17:07:07",
     "vectorizer_type": "tfidf",
     "max_features": 1000,
     "test_size": 0.2,
     "random_seed": 42,
-    "concrete_ml_available": true
+    "concrete_ml_available": true,
+    "classification_type": "binary",
+    "binary_mapping": {
+      "strategy": "cardiovascular_vs_other",
+      "cardiovascular_diseases": [
+        "Coronary Artery Disease",
+        "Atrial Fibrillation",
+        "Hypertension"
+      ],
+      "class_0": "Non-Cardiovascular",
+      "class_1": "Cardiovascular",
+      "original_classes": [
+        "Coronary Artery Disease",
+        "Asthma",
+        "Hypothyroidism",
+        "Arthritis",
+        "Hyperlipidemia",
+        "Chronic Obstructive Pulmonary Disease",
+        "Type 2 Diabetes",
+        "Migraine",
+        "Gastroesophageal Reflux Disease",
+        "Osteoporosis",
+        "Chronic Kidney Disease",
+        "Atrial Fibrillation",
+        "Depression",
+        "Hypertension",
+        "Anxiety Disorder"
+      ],
+      "original_class_count": 15,
+      "binary_class_distribution": {
+        "Non-Cardiovascular": 794,
+        "Cardiovascular": 206
+      }
+    },
+    "fhe_config_file": "src/configs/fhe_config.yaml",
+    "fhe_context": {
+      "scheme": "BFV",
+      "poly_modulus_degree": 16384,
+      "plain_modulus": 65537,
+      "security_level": 128,
+      "use_batching": true
+    },
+    "model_config_file": "src/configs/model_config.yaml",
+    "model_parameters": {
+      "n_bits": 8,
+      "max_iter": 100,
+      "regularization": 0.01,
+      "solver": "liblinear",
+      "random_state": 42,
+      "class_weight": "balanced"
+    }
   },
   "dataset_info": {
     "total_samples": 1000,
     "train_size": 800,
     "test_size": 200,
     "n_features": 717,
-    "n_classes": 15,
+    "n_classes": 2,
     "class_names": [
-      "Anxiety Disorder",
-      "Arthritis",
-      "Asthma",
-      "Atrial Fibrillation",
-      "Chronic Kidney Disease",
-      "Chronic Obstructive Pulmonary Disease",
-      "Coronary Artery Disease",
-      "Depression",
-      "Gastroesophageal Reflux Disease",
-      "Hyperlipidemia",
-      "Hypertension",
-      "Hypothyroidism",
-      "Migraine",
-      "Osteoporosis",
-      "Type 2 Diabetes"
+      "Cardiovascular",
+      "Non-Cardiovascular"
     ]
   },
   "timing": {
-    "training_time": 0.6272144317626953,
-    "clear_inference_time": 0.003885507583618164,
-    "fhe_inference_time": 53.90072274208069
+    "training_time": 0.34355878829956055,
+    "clear_inference_time": 0.0025784969329833984,
+    "fhe_inference_time": 51.11258125305176
   },
   "clear_results": {
-    "accuracy": 0.08,
+    "accuracy": 0.795,
     "classification_report": {
-      "Anxiety Disorder": {
-        "precision": 0.1,
-        "recall": 0.06666666666666667,
-        "f1-score": 0.08,
-        "support": 15.0
-      },
-      "Arthritis": {
-        "precision": 0.11764705882352941,
-        "recall": 0.13333333333333333,
-        "f1-score": 0.125,
-        "support": 15.0
-      },
-      "Asthma": {
-        "precision": 0.08695652173913043,
-        "recall": 0.14285714285714285,
-        "f1-score": 0.10810810810810811,
-        "support": 14.0
-      },
-      "Atrial Fibrillation": {
-        "precision": 0.1111111111111111,
-        "recall": 0.09090909090909091,
-        "f1-score": 0.1,
-        "support": 11.0
-      },
-      "Chronic Kidney Disease": {
+      "Cardiovascular": {
         "precision": 0.0,
         "recall": 0.0,
         "f1-score": 0.0,
-        "support": 12.0
+        "support": 41.0
       },
-      "Chronic Obstructive Pulmonary Disease": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 12.0
+      "Non-Cardiovascular": {
+        "precision": 0.795,
+        "recall": 1.0,
+        "f1-score": 0.8857938718662952,
+        "support": 159.0
       },
-      "Coronary Artery Disease": {
-        "precision": 0.10344827586206896,
-        "recall": 0.1875,
-        "f1-score": 0.13333333333333333,
-        "support": 16.0
-      },
-      "Depression": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 13.0
-      },
-      "Gastroesophageal Reflux Disease": {
-        "precision": 0.1111111111111111,
-        "recall": 0.07692307692307693,
-        "f1-score": 0.09090909090909091,
-        "support": 13.0
-      },
-      "Hyperlipidemia": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 13.0
-      },
-      "Hypertension": {
-        "precision": 0.047619047619047616,
-        "recall": 0.06666666666666667,
-        "f1-score": 0.05555555555555555,
-        "support": 15.0
-      },
-      "Hypothyroidism": {
-        "precision": 0.0967741935483871,
-        "recall": 0.2,
-        "f1-score": 0.13043478260869565,
-        "support": 15.0
-      },
-      "Migraine": {
-        "precision": 0.16666666666666666,
-        "recall": 0.08333333333333333,
-        "f1-score": 0.1111111111111111,
-        "support": 12.0
-      },
-      "Osteoporosis": {
-        "precision": 0.16666666666666666,
-        "recall": 0.09090909090909091,
-        "f1-score": 0.11764705882352941,
-        "support": 11.0
-      },
-      "Type 2 Diabetes": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 13.0
-      },
-      "accuracy": 0.08,
+      "accuracy": 0.795,
       "macro avg": {
-        "precision": 0.07386671020984795,
-        "recall": 0.07593989343989342,
-        "f1-score": 0.07013993602996162,
+        "precision": 0.3975,
+        "recall": 0.5,
+        "f1-score": 0.4428969359331476,
         "support": 200.0
       },
       "weighted avg": {
-        "precision": 0.07401584109002696,
-        "recall": 0.08,
-        "f1-score": 0.07210485540760478,
+        "precision": 0.6320250000000001,
+        "recall": 0.795,
+        "f1-score": 0.7042061281337046,
         "support": 200.0
       }
     },
     "confusion_matrix": [
       [
-        1,
-        1,
-        2,
-        2,
-        1,
         0,
-        3,
-        0,
-        0,
-        0,
-        2,
-        3,
-        0,
-        0,
-        0
+        41
       ],
       [
         0,
-        2,
-        0,
-        0,
-        1,
-        0,
-        5,
-        0,
-        1,
-        1,
-        1,
-        3,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        2,
-        1,
-        0,
-        1,
-        1,
-        0,
-        1,
-        3,
-        1,
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        1,
-        0,
-        0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        2,
-        0,
-        1,
-        2
-      ],
-      [
-        0,
-        3,
-        2,
-        0,
-        0,
-        0,
-        3,
-        1,
-        1,
-        0,
-        1,
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        1,
-        1,
-        0,
-        3,
-        0,
-        0,
-        0,
-        2,
-        2,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        2,
-        0,
-        0,
-        0,
-        3,
-        0,
-        1,
-        3,
-        1,
-        2,
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        1,
-        0,
-        1,
-        2,
-        1,
-        1,
-        0,
-        0,
-        1,
-        2,
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        1,
-        0,
-        2,
-        2,
-        1,
-        1,
-        0,
-        1,
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        1,
-        0,
-        1,
-        0,
-        2,
-        0,
-        3,
-        3,
-        1,
-        0,
-        1
-      ],
-      [
-        4,
-        0,
-        4,
-        1,
-        0,
-        0,
-        1,
-        0,
-        0,
-        1,
-        1,
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        2,
-        0,
-        0,
-        0,
-        3,
-        0,
-        0,
-        1,
-        2,
-        3,
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        2,
-        1,
-        0,
-        1,
-        0,
-        2,
-        0,
-        0,
-        3,
-        0,
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        0,
-        0,
-        2,
-        2,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        3,
-        0,
-        2,
-        0,
-        1,
-        0,
-        1,
-        0,
-        2,
-        1,
-        0,
-        1,
-        0
+        159
       ]
     ],
     "class_names": [
-      "Anxiety Disorder",
-      "Arthritis",
-      "Asthma",
-      "Atrial Fibrillation",
-      "Chronic Kidney Disease",
-      "Chronic Obstructive Pulmonary Disease",
-      "Coronary Artery Disease",
-      "Depression",
-      "Gastroesophageal Reflux Disease",
-      "Hyperlipidemia",
-      "Hypertension",
-      "Hypothyroidism",
-      "Migraine",
-      "Osteoporosis",
-      "Type 2 Diabetes"
+      "Cardiovascular",
+      "Non-Cardiovascular"
     ]
   },
   "fhe_results": {
-    "accuracy": 0.08,
+    "accuracy": 0.795,
     "classification_report": {
-      "Anxiety Disorder": {
-        "precision": 0.1,
-        "recall": 0.06666666666666667,
-        "f1-score": 0.08,
-        "support": 15.0
-      },
-      "Arthritis": {
-        "precision": 0.11764705882352941,
-        "recall": 0.13333333333333333,
-        "f1-score": 0.125,
-        "support": 15.0
-      },
-      "Asthma": {
-        "precision": 0.08695652173913043,
-        "recall": 0.14285714285714285,
-        "f1-score": 0.10810810810810811,
-        "support": 14.0
-      },
-      "Atrial Fibrillation": {
-        "precision": 0.1111111111111111,
-        "recall": 0.09090909090909091,
-        "f1-score": 0.1,
-        "support": 11.0
-      },
-      "Chronic Kidney Disease": {
+      "Cardiovascular": {
         "precision": 0.0,
         "recall": 0.0,
         "f1-score": 0.0,
-        "support": 12.0
+        "support": 41.0
       },
-      "Chronic Obstructive Pulmonary Disease": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 12.0
+      "Non-Cardiovascular": {
+        "precision": 0.795,
+        "recall": 1.0,
+        "f1-score": 0.8857938718662952,
+        "support": 159.0
       },
-      "Coronary Artery Disease": {
-        "precision": 0.10344827586206896,
-        "recall": 0.1875,
-        "f1-score": 0.13333333333333333,
-        "support": 16.0
-      },
-      "Depression": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 13.0
-      },
-      "Gastroesophageal Reflux Disease": {
-        "precision": 0.1111111111111111,
-        "recall": 0.07692307692307693,
-        "f1-score": 0.09090909090909091,
-        "support": 13.0
-      },
-      "Hyperlipidemia": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 13.0
-      },
-      "Hypertension": {
-        "precision": 0.047619047619047616,
-        "recall": 0.06666666666666667,
-        "f1-score": 0.05555555555555555,
-        "support": 15.0
-      },
-      "Hypothyroidism": {
-        "precision": 0.0967741935483871,
-        "recall": 0.2,
-        "f1-score": 0.13043478260869565,
-        "support": 15.0
-      },
-      "Migraine": {
-        "precision": 0.16666666666666666,
-        "recall": 0.08333333333333333,
-        "f1-score": 0.1111111111111111,
-        "support": 12.0
-      },
-      "Osteoporosis": {
-        "precision": 0.16666666666666666,
-        "recall": 0.09090909090909091,
-        "f1-score": 0.11764705882352941,
-        "support": 11.0
-      },
-      "Type 2 Diabetes": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 13.0
-      },
-      "accuracy": 0.08,
+      "accuracy": 0.795,
       "macro avg": {
-        "precision": 0.07386671020984795,
-        "recall": 0.07593989343989342,
-        "f1-score": 0.07013993602996162,
+        "precision": 0.3975,
+        "recall": 0.5,
+        "f1-score": 0.4428969359331476,
         "support": 200.0
       },
       "weighted avg": {
-        "precision": 0.07401584109002696,
-        "recall": 0.08,
-        "f1-score": 0.07210485540760478,
+        "precision": 0.6320250000000001,
+        "recall": 0.795,
+        "f1-score": 0.7042061281337046,
         "support": 200.0
       }
     },
     "confusion_matrix": [
       [
-        1,
-        1,
-        2,
-        2,
-        1,
         0,
-        3,
-        0,
-        0,
-        0,
-        2,
-        3,
-        0,
-        0,
-        0
+        41
       ],
       [
         0,
-        2,
-        0,
-        0,
-        1,
-        0,
-        5,
-        0,
-        1,
-        1,
-        1,
-        3,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        2,
-        1,
-        0,
-        1,
-        1,
-        0,
-        1,
-        3,
-        1,
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        1,
-        0,
-        0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        2,
-        0,
-        1,
-        2
-      ],
-      [
-        0,
-        3,
-        2,
-        0,
-        0,
-        0,
-        3,
-        1,
-        1,
-        0,
-        1,
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        1,
-        1,
-        0,
-        3,
-        0,
-        0,
-        0,
-        2,
-        2,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        2,
-        0,
-        0,
-        0,
-        3,
-        0,
-        1,
-        3,
-        1,
-        2,
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        1,
-        0,
-        1,
-        2,
-        1,
-        1,
-        0,
-        0,
-        1,
-        2,
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        1,
-        0,
-        2,
-        2,
-        1,
-        1,
-        0,
-        1,
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        1,
-        0,
-        1,
-        0,
-        2,
-        0,
-        3,
-        3,
-        1,
-        0,
-        1
-      ],
-      [
-        4,
-        0,
-        4,
-        1,
-        0,
-        0,
-        1,
-        0,
-        0,
-        1,
-        1,
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        2,
-        0,
-        0,
-        0,
-        3,
-        0,
-        0,
-        1,
-        2,
-        3,
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        2,
-        1,
-        0,
-        1,
-        0,
-        2,
-        0,
-        0,
-        3,
-        0,
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        1,
-        1,
-        1,
-        0,
-        0,
-        0,
-        0,
-        2,
-        2,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        3,
-        0,
-        2,
-        0,
-        1,
-        0,
-        1,
-        0,
-        2,
-        1,
-        0,
-        1,
-        0
+        159
       ]
     ],
     "class_names": [
-      "Anxiety Disorder",
-      "Arthritis",
-      "Asthma",
-      "Atrial Fibrillation",
-      "Chronic Kidney Disease",
-      "Chronic Obstructive Pulmonary Disease",
-      "Coronary Artery Disease",
-      "Depression",
-      "Gastroesophageal Reflux Disease",
-      "Hyperlipidemia",
-      "Hypertension",
-      "Hypothyroidism",
-      "Migraine",
-      "Osteoporosis",
-      "Type 2 Diabetes"
+      "Cardiovascular",
+      "Non-Cardiovascular"
     ]
   }
 }

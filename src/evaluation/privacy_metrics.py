@@ -15,6 +15,7 @@ from typing import Dict, List, Tuple, Any, Optional, Union
 from collections import Counter, defaultdict
 import math
 import hashlib
+import yaml
 
 # Configure logging
 logging.basicConfig(
@@ -32,10 +33,41 @@ class PrivacyEvaluator:
     k-anonymity, l-diversity, information leakage, and differential privacy analysis.
     """
     
-    def __init__(self):
-        """Initialize the Privacy Evaluator"""
+    def __init__(self, dp_config_path: str = "src/configs/dp_config.yaml"):
+        """Initialize the Privacy Evaluator
+        
+        Args:
+            dp_config_path: Path to DP configuration file
+        """
         self.evaluation_results = {}
+        self.dp_config = self.load_dp_config(dp_config_path)
         logger.info("Privacy Evaluator initialized")
+    
+    def load_dp_config(self, config_path: str) -> Dict[str, Any]:
+        """
+        Load differential privacy configuration from YAML file
+        
+        Args:
+            config_path: Path to DP configuration file
+            
+        Returns:
+            Configuration dictionary
+        """
+        try:
+            config_file = Path(config_path)
+            if not config_file.exists():
+                logger.warning(f"DP config not found at {config_path}, using defaults")
+                return {'dp': {'epsilon_values': [0.1, 0.5, 1.0, 2.0, 5.0], 'delta': 1e-5}}
+            
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+            
+            logger.info(f"✅ DP configuration loaded from: {config_path}")
+            return config
+            
+        except Exception as e:
+            logger.error(f"Error loading DP config: {e}")
+            return {'dp': {'epsilon_values': [0.1, 0.5, 1.0, 2.0, 5.0], 'delta': 1e-5}}
     
     def compute_k_anonymity(
         self, 
@@ -333,6 +365,124 @@ class PrivacyEvaluator:
         
         logger.info(f"Differential privacy analysis: privacy_level={privacy_level}")
         return result
+    
+    def calculate_dp_privacy_score(
+        self, 
+        dataset_metadata: Dict[str, Any],
+        use_config: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Calculate comprehensive DP privacy score from dataset metadata using config
+        
+        Args:
+            dataset_metadata: Metadata from preprocessed dataset
+            use_config: Whether to use config epsilon values for comparison
+            
+        Returns:
+            Dictionary with DP privacy score and analysis
+        """
+        logger.info("Calculating DP privacy score from dataset metadata")
+        
+        # Extract DP parameters from metadata
+        epsilon = dataset_metadata.get('epsilon', 1.0)
+        delta = dataset_metadata.get('delta', 1e-5)
+        sensitivity = dataset_metadata.get('sensitivity', 1.0)
+        noise_dist = dataset_metadata.get('noise_distribution', 'laplace')
+        
+        # Get DP analysis
+        dp_analysis = self.differential_privacy_analysis(epsilon, delta)
+        
+        # Calculate privacy score (0-100, higher = better privacy)
+        # Score based on epsilon: lower epsilon = higher score
+        if epsilon <= 0.1:
+            base_score = 95
+        elif epsilon <= 0.5:
+            base_score = 85
+        elif epsilon <= 1.0:
+            base_score = 75
+        elif epsilon <= 2.0:
+            base_score = 60
+        elif epsilon <= 5.0:
+            base_score = 40
+        else:
+            base_score = 20
+        
+        # Adjust for delta (smaller delta = better)
+        if delta <= 1e-6:
+            delta_bonus = 5
+        elif delta <= 1e-5:
+            delta_bonus = 3
+        else:
+            delta_bonus = 0
+        
+        # Adjust for noise distribution (Gaussian slightly better for (ε,δ)-DP)
+        dist_bonus = 2 if noise_dist == 'gaussian' else 0
+        
+        privacy_score = min(100, base_score + delta_bonus + dist_bonus)
+        
+        # Compare with config epsilon values if requested
+        config_comparison = {}
+        if use_config and 'epsilon_values' in self.dp_config.get('dp', {}):
+            config_epsilons = self.dp_config['dp']['epsilon_values']
+            config_comparison = {
+                'config_epsilon_values': config_epsilons,
+                'current_epsilon': epsilon,
+                'is_in_config_range': epsilon in config_epsilons,
+                'recommended_epsilon': min(config_epsilons) if config_epsilons else 1.0
+            }
+        
+        result = {
+            'privacy_score': privacy_score,
+            'privacy_grade': self._score_to_grade(privacy_score),
+            'epsilon': epsilon,
+            'delta': delta,
+            'sensitivity': sensitivity,
+            'noise_distribution': noise_dist,
+            'privacy_level': dp_analysis['privacy_level'],
+            'privacy_description': dp_analysis['privacy_description'],
+            'utility_impact': dp_analysis['utility_impact'],
+            'config_comparison': config_comparison,
+            'recommendations': self._generate_dp_score_recommendations(privacy_score, epsilon)
+        }
+        
+        logger.info(f"DP privacy score calculated: {privacy_score}/100 (Grade: {result['privacy_grade']})")
+        return result
+    
+    def _score_to_grade(self, score: float) -> str:
+        """Convert privacy score to letter grade"""
+        if score >= 90:
+            return 'A+'
+        elif score >= 85:
+            return 'A'
+        elif score >= 80:
+            return 'A-'
+        elif score >= 75:
+            return 'B+'
+        elif score >= 70:
+            return 'B'
+        elif score >= 65:
+            return 'B-'
+        elif score >= 60:
+            return 'C+'
+        elif score >= 55:
+            return 'C'
+        else:
+            return 'D'
+    
+    def _generate_dp_score_recommendations(self, score: float, epsilon: float) -> List[str]:
+        """Generate recommendations based on privacy score"""
+        recommendations = []
+        
+        if score < 70:
+            recommendations.append(f"Consider reducing epsilon (current: {epsilon}) for better privacy")
+        if score >= 90:
+            recommendations.append("Excellent privacy protection! Monitor utility impact")
+        if epsilon > 2.0:
+            recommendations.append("Epsilon is high - privacy guarantees are weak")
+        if score < 50:
+            recommendations.append("CRITICAL: Privacy protection is insufficient for sensitive data")
+        
+        return recommendations
     
     def _extract_text_content(self, data: Union[str, List[str], pd.DataFrame]) -> str:
         """Extract text content from various data formats"""

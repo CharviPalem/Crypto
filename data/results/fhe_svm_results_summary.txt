@@ -3,22 +3,24 @@ PRIVACY-PRESERVING SVM RESULTS
 ============================================================
 
 Dataset Information:
-  Dataset: diabetes
-  Training samples: 353
-  Test samples: 89
-  Features: 10
+  Dataset: medical_text
+  Classification: binary
+  Training samples: 800
+  Test samples: 200
+  Features: 717
+  Classes: 2 (Cardiovascular, Non-Cardiovascular)
 
 Model Information:
   Kernel: linear
   C parameter: 1.0
-  Support vectors: 193
+  Support vectors: 364
 
 Performance Comparison:
-  Clear Accuracy: 0.7416
+  Clear Accuracy: 0.6900
 
 Timing Comparison:
-  Training Time: 0.0294s
-  Clear Inference: 0.0010s
+  Training Time: 2.8671s
+  Clear Inference: 0.0382s
 
 Privacy Features:
   Homomorphic Encryption: ✅ Enabled

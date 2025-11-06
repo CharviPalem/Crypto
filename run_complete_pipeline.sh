@@ -37,10 +37,12 @@ python src/fhe_models/fhe_logistic_regression.py \
     --output data/results/fhe_logistic_regression_results.json
 echo ""
 
-# Step 4: Train FHE SVM
+# Step 4: Train FHE SVM (uses PREPROCESSED data with binary classification)
 echo "Step 4: Training FHE SVM model..."
 python src/fhe_models/fhe_svm_model.py \
-    --output data/results/fhe_svm_results.json
+    --train data/processed/preprocessed_data.json \
+    --output data/results/fhe_svm_results.json \
+    --skip-encryption
 echo ""
 
 # Step 5: Evaluate Privacy Metrics

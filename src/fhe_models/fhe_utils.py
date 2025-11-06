@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional, Union
 import sys
 import os
+import yaml
 
 # Configure logging
 logging.basicConfig(
@@ -44,6 +45,95 @@ try:
 except ImportError as e:
     CONCRETE_ML_AVAILABLE = False
     logger.warning(f"⚠️ Concrete-ML not available: {e}")
+
+
+def load_fhe_config(config_path: str = "src/configs/fhe_config.yaml") -> Dict[str, Any]:
+    """
+    Load FHE configuration from YAML file
+    
+    Args:
+        config_path: Path to FHE configuration file
+        
+    Returns:
+        Configuration dictionary
+    """
+    try:
+        config_file = Path(config_path)
+        if not config_file.exists():
+            logger.warning(f"FHE config not found at {config_path}, using defaults")
+            return {
+                'fhe': {
+                    'scheme': 'BFV',
+                    'polynomial_modulus_degree': 8192,
+                    'plaintext_modulus': 1032193,
+                    'security_level': 128
+                }
+            }
+        
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        logger.info(f"✅ FHE configuration loaded from: {config_path}")
+        logger.info(f"   Scheme: {config['fhe']['scheme']}")
+        logger.info(f"   Polynomial modulus degree: {config['fhe']['polynomial_modulus_degree']}")
+        logger.info(f"   Security level: {config['fhe']['security_level']} bits")
+        
+        return config
+        
+    except Exception as e:
+        logger.error(f"Error loading FHE config: {e}")
+        logger.warning("Using default FHE parameters")
+        return {
+            'fhe': {
+                'scheme': 'BFV',
+                'polynomial_modulus_degree': 8192,
+                'plaintext_modulus': 1032193,
+                'security_level': 128
+            }
+        }
+
+
+def initialize_fhe_context_from_config(
+    config_path: str = "src/configs/fhe_config.yaml",
+    library: str = "auto"
+) -> FHEContextManager:
+    """
+    Initialize FHE context from YAML config file
+    
+    Args:
+        config_path: Path to FHE configuration file
+        library: FHE library to use ("pyfhel", "concrete", or "auto")
+    
+    Returns:
+        FHEContextManager instance with initialized context
+    """
+    logger.info(f"Initializing FHE context from config: {config_path}")
+    
+    # Load config
+    config = load_fhe_config(config_path)
+    fhe_params = config.get('fhe', {})
+    
+    # Extract parameters
+    scheme = fhe_params.get('scheme', 'BFV').lower()
+    poly_degree = fhe_params.get('polynomial_modulus_degree', 8192)
+    plaintext_modulus = fhe_params.get('plaintext_modulus', 1032193)
+    security_level = fhe_params.get('security_level', 128)
+    
+    # Calculate t_bits from plaintext_modulus
+    import math
+    t_bits = int(math.log2(plaintext_modulus)) if plaintext_modulus > 0 else 20
+    
+    # Initialize context
+    context_manager = initialize_fhe_context(
+        scheme=scheme,
+        poly_degree=poly_degree,
+        plaintext_modulus_bits=t_bits,
+        security_level=security_level,
+        library=library
+    )
+    
+    logger.info("✅ FHE context initialized from config successfully")
+    return context_manager
 
 
 class FHEContextManager:

@@ -135,6 +135,67 @@ class FHESecurityAnalyzer:
         logger.info("✅ Security analysis completed")
         return security_metrics
     
+    def evaluate_encryption_strength(self) -> Dict[str, Any]:
+        """
+        Evaluate encryption strength based on FHE config parameters
+        
+        Returns:
+            Dictionary with encryption strength evaluation
+        """
+        logger.info("Evaluating encryption strength from config...")
+        
+        fhe_params = self.config.get('fhe_parameters', {})
+        
+        # Extract key parameters
+        poly_degree = fhe_params.get('polynomial_degree', 8192)
+        security_level = fhe_params.get('security_level', 128)
+        scheme = fhe_params.get('scheme', 'bfv')
+        plaintext_modulus = fhe_params.get('plaintext_modulus_bits', 20)
+        
+        # Evaluate strength
+        if security_level >= 256:
+            strength_level = "Very High"
+            strength_score = 95
+        elif security_level >= 192:
+            strength_level = "High"
+            strength_score = 85
+        elif security_level >= 128:
+            strength_level = "Medium-High"
+            strength_score = 75
+        else:
+            strength_level = "Medium"
+            strength_score = 60
+        
+        # Adjust for polynomial degree
+        if poly_degree >= 16384:
+            strength_score += 5
+        elif poly_degree < 4096:
+            strength_score -= 10
+        
+        strength_score = min(100, max(0, strength_score))
+        
+        result = {
+            'encryption_strength_score': strength_score,
+            'strength_level': strength_level,
+            'security_level_bits': security_level,
+            'polynomial_degree': poly_degree,
+            'scheme': scheme,
+            'plaintext_modulus': plaintext_modulus,
+            'quantum_resistant': security_level >= 128,
+            'recommendations': []
+        }
+        
+        # Add recommendations
+        if security_level < 128:
+            result['recommendations'].append("Increase security level to at least 128 bits")
+        if poly_degree < 8192:
+            result['recommendations'].append("Consider increasing polynomial degree for better security")
+        if security_level >= 128:
+            result['recommendations'].append("Current parameters provide quantum-resistant security")
+        
+        logger.info(f"Encryption strength: {strength_score}/100 ({strength_level})")
+        return result
+    
     def _analyze_key_security(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Analyze key-related security metrics
